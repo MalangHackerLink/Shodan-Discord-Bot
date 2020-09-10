@@ -13,7 +13,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
+func Msg(s *discordgo.Session, m *discordgo.MessageCreate) {
+	log.WithFields(log.Fields{
+		"UserID": m.Author.ID,
+	}).Info(m.Content)
+
 	if strings.HasPrefix(m.Content, prefix) {
 		array := strings.Split(m.Content, " ")
 		if array[0] == prefix+"sub" {
@@ -36,6 +40,8 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			info2, err := client.GetDNSReverse(context.Background(), ips)
 			if err != nil {
 				log.Error(err)
+				s.ChannelMessageSend(m.ChannelID, err.Error())
+				return
 			}
 			for i := 0; i < len(ips); i++ {
 				var (
@@ -52,6 +58,8 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			info, err := client.GetDNSResolve(context.Background(), domainlist)
 			if err != nil {
 				log.Error(err)
+				s.ChannelMessageSend(m.ChannelID, err.Error())
+				return
 			}
 			for i := 0; i < len(domainlist); i++ {
 				s.ChannelMessageSend(m.ChannelID, "Resolve domain for `"+domainlist[i]+"` : "+info[domainlist[i]].String())
@@ -63,6 +71,8 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 				info, err := client.GetServicesForHost(context.Background(), hostlist[i], nil)
 				if err != nil {
 					log.Error(err)
+					s.ChannelMessageSend(m.ChannelID, err.Error())
+					return
 				}
 				e, err := json.Marshal(info)
 				if err != nil {

@@ -16,11 +16,16 @@ var (
 )
 
 func main() {
+	log.SetFormatter(&log.TextFormatter{
+		DisableColors: true,
+		FullTimestamp: true,
+	})
+	log.Info("Starting bot...")
 	dg, err := discordgo.New("Bot " + os.Getenv("TOKEN"))
 	if err != nil {
 		log.Error(err)
 	}
-	dg.AddHandler(messageCreate)
+	dg.AddHandler(Msg)
 
 	err = dg.Open()
 	if err != nil {
