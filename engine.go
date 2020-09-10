@@ -27,7 +27,11 @@ func Msg(s *discordgo.Session, m *discordgo.MessageCreate) {
 				s.ChannelMessageSend(m.ChannelID, err.Error())
 				return
 			}
-			s.ChannelMessageSend(m.ChannelID, "Subs domain for `"+array[1]+"` : "+strings.Join(info.Subdomains, ","))
+			_, err = s.ChannelMessageSend(m.ChannelID, "Subs domain for `"+array[1]+"` : "+strings.Join(info.Subdomains, ","))
+			if err != nil {
+				s.ChannelMessageSend(m.ChannelID, "Subs domain for `"+array[1]+"` : "+PushPastebin(array[1], []byte(strings.Join(info.Subdomains, ","))))
+				return
+			}
 		} else if array[0] == prefix+"rev" {
 			iplist := strings.Split(array[1], ",")
 			var (
