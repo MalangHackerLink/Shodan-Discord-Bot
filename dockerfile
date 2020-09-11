@@ -11,6 +11,5 @@ RUN go get -u github.com/Ullaakut/nmap
 RUN mkdir /app
 COPY . /app
 WORKDIR /app
-RUN nohup tor &
-
-CMD ["go","run","."]
+ENTRYPOINT ["go","run","."]
+CMD ["nohup","tor","&"]

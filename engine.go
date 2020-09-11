@@ -15,11 +15,11 @@ import (
 )
 
 func Msg(s *discordgo.Session, m *discordgo.MessageCreate) {
-	log.WithFields(log.Fields{
-		"UserID": m.Author.ID,
-	}).Info(m.Content)
-
 	if strings.HasPrefix(m.Content, prefix) {
+		log.WithFields(log.Fields{
+			"UserID": m.Author.ID,
+		}).Info(m.Content[len(prefix):])
+
 		array := strings.Split(m.Content, " ")
 		if array[0] == prefix+"sub" {
 			info, err := client.GetDomain(ctx, array[1])
@@ -108,6 +108,9 @@ func Map(s *discordgo.Session, m *discordgo.MessageCreate) {
 	table := tablewriter.NewWriter(tableString)
 
 	if strings.HasPrefix(m.Content, prefix2) {
+		log.WithFields(log.Fields{
+			"UserID": m.Author.ID,
+		}).Info(m.Content[len(prefix2):])
 		array := strings.Split(m.Content, " ")
 		if array[0] == prefix2+"scan" {
 			s.ChannelMessageSend(m.ChannelID, "Wait for 3-5 minute,if the result still not upper that's mean i fucked")
