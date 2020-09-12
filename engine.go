@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"net"
 	"regexp"
@@ -17,6 +18,9 @@ import (
 
 func Msg(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if strings.HasPrefix(m.Content, prefix) {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		defer cancel()
+
 		log.WithFields(log.Fields{
 			"UserID": m.Author.ID,
 		}).Info(m.Content[len(prefix):])
@@ -107,6 +111,7 @@ func PushPastebin(title string, body []byte) string {
 type IPPORT struct {
 	IP   string
 	Port []string
+	ctx  context.Context
 }
 
 func Map(s *discordgo.Session, m *discordgo.MessageCreate) {
@@ -114,6 +119,9 @@ func Map(s *discordgo.Session, m *discordgo.MessageCreate) {
 	table := tablewriter.NewWriter(tableString)
 
 	if strings.HasPrefix(m.Content, prefix2) {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		defer cancel()
+
 		log.WithFields(log.Fields{
 			"UserID": m.Author.ID,
 		}).Info(m.Content[len(prefix2):])
@@ -130,6 +138,7 @@ func Map(s *discordgo.Session, m *discordgo.MessageCreate) {
 			Data := IPPORT{
 				IP:   host,
 				Port: portlist,
+				ctx:  ctx,
 			}
 			if array[0][len(prefix2+"scan-"):] == "tcp" {
 				dat, warnings, err = Data.ScanGoBrrrr("tcp")
@@ -160,7 +169,8 @@ func Map(s *discordgo.Session, m *discordgo.MessageCreate) {
 			if len(array) > 1 && strings.HasPrefix(array[1], "http") {
 				s.ChannelMessageSend(m.ChannelID, "Wait for 3-5 minute,if the result still not upper that's mean i fucked-up")
 				Data := IPPORT{
-					IP: array[2],
+					IP:  array[2],
+					ctx: ctx,
 				}
 				reg, err := regexp.Compile("[^a-zA-Z0-9\\-]+")
 				if err != nil {
@@ -209,7 +219,7 @@ func (Data IPPORT) ScanGoBrrrr(pkttype string) ([][]string, []string, error) {
 			nmap.WithProxies(TORSOCKS),
 			nmap.WithReason(),
 			nmap.WithDefaultScript(),
-			nmap.WithContext(ctx),
+			nmap.WithContext(Data.ctx),
 		)
 		if err != nil {
 			log.Error(err)
@@ -240,7 +250,7 @@ func (Data IPPORT) ScanGoBrrrr(pkttype string) ([][]string, []string, error) {
 			nmap.WithProxies(TORSOCKS),
 			nmap.WithReason(),
 			nmap.WithDefaultScript(),
-			nmap.WithContext(ctx),
+			nmap.WithContext(Data.ctx),
 		)
 		if err != nil {
 			log.Error(err)
@@ -274,7 +284,7 @@ func (Data IPPORT) ScanScriptBrrr(script string) ([]string, []string, error) {
 		nmap.WithScripts(script),
 		nmap.WithTargets(Data.IP),
 		nmap.WithProxies(TORSOCKS),
-		nmap.WithContext(ctx),
+		nmap.WithContext(Data.ctx),
 	)
 	if err != nil {
 		log.Error(err)

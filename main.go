@@ -1,11 +1,9 @@
 package main
 
 import (
-	"context"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/ns3777k/go-shodan/shodan"
@@ -16,8 +14,6 @@ var (
 	client   *shodan.Client
 	prefix   = "shodan>"
 	prefix2  = "nmap>"
-	ctx      context.Context
-	cancel   context.CancelFunc
 	TORSOCKS string
 	PASTEBIN string
 	DISCORD  string
@@ -39,9 +35,6 @@ func main() {
 		log.Error("TORSOCKS,PASTEBIN,DISCORD,SHODAN nill")
 		os.Exit(1)
 	}
-
-	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Minute)
-	defer cancel()
 
 	dg, err := discordgo.New("Bot " + DISCORD)
 	if err != nil {
