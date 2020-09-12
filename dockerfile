@@ -11,5 +11,6 @@ RUN go get -u github.com/Ullaakut/nmap
 RUN mkdir /app
 COPY . /app
 WORKDIR /app
-ENTRYPOINT ["go","run","."]
-CMD ["nohup","tor","&"]
+RUN chmod +x /app/ngeng.sh
+
+CMD ["./ngeng.sh"]
