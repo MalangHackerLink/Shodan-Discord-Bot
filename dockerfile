@@ -1,6 +1,6 @@
 FROM golang:alpine
 
-RUN apk add git nmap tor
+RUN apk add git nmap nmap-scripts tor
 RUN go get -u github.com/bwmarrin/discordgo
 RUN go get -u github.com/ns3777k/go-shodan/shodan
 RUN go get -u github.com/sirupsen/logrus

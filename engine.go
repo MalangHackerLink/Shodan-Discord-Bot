@@ -161,9 +161,10 @@ func Map(s *discordgo.Session, m *discordgo.MessageCreate) {
 				Data := IPPORT{
 					IP: array[2],
 				}
-				text := strings.Join(Data.ScanScriptBrrr(array[1]), "\n")
+				dat, warn := Data.ScanScriptBrrr(array[1])
+				text := strings.Join(dat, "\n")
 				if len(text) > 2048 {
-					s.ChannelMessageSend(m.ChannelID, "```"+PushPastebin(Data.IP, []byte(text))+"```")
+					s.ChannelMessageSend(m.ChannelID, "Warning\n "+strings.Join(warn, " ")+"```"+PushPastebin(Data.IP, []byte(text))+"```")
 				} else {
 					s.ChannelMessageSend(m.ChannelID, "```"+text+"```")
 				}
@@ -246,7 +247,7 @@ func (Data IPPORT) ScanGoBrrrr(pkttype string) ([][]string, []string, error) {
 	return nil, nil, nil
 }
 
-func (Data IPPORT) ScanScriptBrrr(script string) []string {
+func (Data IPPORT) ScanScriptBrrr(script string) ([]string, []string) {
 	var fix []string
 	scanner, err := nmap.NewScanner(
 		nmap.WithScripts(script),
@@ -258,7 +259,7 @@ func (Data IPPORT) ScanScriptBrrr(script string) []string {
 		log.Error(err)
 	}
 
-	result, _, err := scanner.Run()
+	result, warnings, err := scanner.Run()
 	for _, res := range result.Hosts {
 		for _, pors := range res.Ports {
 			for _, scr := range pors.Scripts {
@@ -266,5 +267,5 @@ func (Data IPPORT) ScanScriptBrrr(script string) []string {
 			}
 		}
 	}
-	return fix
+	return fix, warnings
 }

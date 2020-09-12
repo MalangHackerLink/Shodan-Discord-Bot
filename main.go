@@ -15,7 +15,7 @@ import (
 var (
 	client   *shodan.Client
 	prefix   = "shodan>"
-	prefix2  = "nmap>"
+	prefix2  = "nmap!>"
 	ctx      context.Context
 	cancel   context.CancelFunc
 	TORSOCKS string
