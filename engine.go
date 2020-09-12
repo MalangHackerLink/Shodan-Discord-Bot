@@ -103,6 +103,11 @@ func PushPastebin(title string, body []byte) string {
 	return link
 }
 
+type IPPORT struct {
+	IP   string
+	Port []string
+}
+
 func Map(s *discordgo.Session, m *discordgo.MessageCreate) {
 	tableString := &strings.Builder{}
 	table := tablewriter.NewWriter(tableString)
@@ -112,21 +117,35 @@ func Map(s *discordgo.Session, m *discordgo.MessageCreate) {
 			"UserID": m.Author.ID,
 		}).Info(m.Content[len(prefix2):])
 		array := strings.Split(m.Content, " ")
-		if array[0] == prefix2+"scan" {
+		if array[0] == prefix2+"scan-tcp" || array[0] == prefix2+"scan-udp" {
 			s.ChannelMessageSend(m.ChannelID, "Wait for 3-5 minute,if the result still not upper that's mean i fucked")
-			host := array[1]
+			var (
+				host     = array[1]
+				dat      [][]string
+				warnings []string
+				err      error
+			)
 			portlist := strings.Split(array[2], ",")
 			Data := IPPORT{
 				IP:   host,
 				Port: portlist,
 			}
-			dat, warnings, err := Data.ScanGobrrrr()
-			if err != nil {
-				log.Error(err)
-				s.ChannelMessageSend(m.ChannelID, err.Error()+"\nWarnings "+strings.Join(warnings, " "))
-				return
+			if array[0][len(prefix2+"scan-"):] == "tcp" {
+				dat, warnings, err = Data.ScanGoBrrrr("tcp")
+				if err != nil {
+					log.Error(err)
+					s.ChannelMessageSend(m.ChannelID, err.Error()+"\nWarnings "+strings.Join(warnings, " "))
+					return
+				}
+			} else {
+				dat, warnings, err = Data.ScanGoBrrrr("udp")
+				if err != nil {
+					log.Error(err)
+					s.ChannelMessageSend(m.ChannelID, err.Error()+"\nWarnings "+strings.Join(warnings, " "))
+					return
+				}
 			}
-			table.SetHeader([]string{"Port", "Status", "Service"})
+			table.SetHeader([]string{"Port", "Status", "Service", "Reason"})
 			for _, v := range dat {
 				table.Append(v)
 			}
@@ -136,43 +155,116 @@ func Map(s *discordgo.Session, m *discordgo.MessageCreate) {
 			} else {
 				s.ChannelMessageSend(m.ChannelID, "Port for `"+host+":`\n```\r"+tableString.String()+"```")
 			}
+		} else if array[0] == prefix2+"script" {
+			if len(array) > 1 {
+				s.ChannelMessageSend(m.ChannelID, "Wait for 3-5 minute,if the result still not upper that's mean i fucked")
+				Data := IPPORT{
+					IP: array[2],
+				}
+				text := strings.Join(Data.ScanScriptBrrr(array[1]), "\n")
+				if len(text) > 2048 {
+					s.ChannelMessageSend(m.ChannelID, "```"+PushPastebin(Data.IP, []byte(text))+"```")
+				} else {
+					s.ChannelMessageSend(m.ChannelID, "```"+text+"```")
+				}
+			} else {
+				s.ChannelMessageSend(m.ChannelID, "invalid script args")
+			}
 		}
 	}
 }
 
-type IPPORT struct {
-	IP   string
-	Port []string
+func (Data IPPORT) ScanGoBrrrr(pkttype string) ([][]string, []string, error) {
+	var (
+		tbl     [][]string
+		scanner *nmap.Scanner
+		err     error
+	)
+	if pkttype == "tcp" {
+		scanner, err = nmap.NewScanner(
+			nmap.WithTargets(Data.IP),
+			nmap.WithPorts(strings.Join(Data.Port, ",")),
+			nmap.WithProxies(TORSOCKS),
+			nmap.WithReason(),
+			nmap.WithDefaultScript(),
+			nmap.WithContext(ctx),
+		)
+		if err != nil {
+			log.Error(err)
+			return nil, nil, err
+		}
+
+		result, warnings, err := scanner.Run()
+		if err != nil {
+			log.Error(err, warnings)
+			return nil, warnings, err
+		}
+
+		for _, host := range result.Hosts {
+			if len(host.Ports) == 0 || len(host.Addresses) == 0 {
+				continue
+			}
+			for _, port := range host.Ports {
+				tmp := [][]string{[]string{strconv.Itoa(int(port.ID)) + "/" + port.Protocol, port.State.String(), port.Service.Name, host.Status.Reason}}
+				tbl = append(tbl, tmp...)
+			}
+		}
+		return tbl, warnings, nil
+	} else if pkttype == "udp" {
+		scanner, err = nmap.NewScanner(
+			nmap.WithUDPScan(),
+			nmap.WithTargets(Data.IP),
+			nmap.WithPorts(strings.Join(Data.Port, ",")),
+			nmap.WithProxies(TORSOCKS),
+			nmap.WithReason(),
+			nmap.WithDefaultScript(),
+			nmap.WithContext(ctx),
+		)
+		if err != nil {
+			log.Error(err)
+			return nil, nil, err
+		}
+
+		result, warnings, err := scanner.Run()
+		if err != nil {
+			log.Error(err, warnings)
+			return nil, warnings, err
+		}
+
+		for _, host := range result.Hosts {
+			if len(host.Ports) == 0 || len(host.Addresses) == 0 {
+				continue
+			}
+			for _, port := range host.Ports {
+				tmp := [][]string{[]string{strconv.Itoa(int(port.ID)) + "/" + port.Protocol, port.State.String(), port.Service.Name, host.Status.Reason}}
+				tbl = append(tbl, tmp...)
+
+			}
+		}
+		return tbl, warnings, nil
+	}
+	return nil, nil, nil
 }
 
-func (Data IPPORT) ScanGobrrrr() ([][]string, []string, error) {
-	var tbl [][]string
+func (Data IPPORT) ScanScriptBrrr(script string) []string {
+	var fix []string
 	scanner, err := nmap.NewScanner(
+		nmap.WithScripts(script),
 		nmap.WithTargets(Data.IP),
-		nmap.WithPorts(strings.Join(Data.Port, ",")),
 		nmap.WithProxies(TORSOCKS),
 		nmap.WithContext(ctx),
 	)
 	if err != nil {
 		log.Error(err)
-		return nil, nil, err
 	}
 
-	result, warnings, err := scanner.Run()
-	if err != nil {
-		log.Error(err)
-		return nil, nil, err
-	}
-
-	for _, host := range result.Hosts {
-		if len(host.Ports) == 0 || len(host.Addresses) == 0 {
-			continue
-		}
-		for _, port := range host.Ports {
-			tmp := [][]string{[]string{strconv.Itoa(int(port.ID)) + "/" + port.Protocol, port.State.String(), port.Service.Name}}
-			tbl = append(tbl, tmp...)
-
+	result, _, err := scanner.Run()
+	for _, res := range result.Hosts {
+		for _, pors := range res.Ports {
+			for _, scr := range pors.Scripts {
+				fix = append(fix, scr.Output)
+			}
 		}
 	}
-	return tbl, warnings, nil
+	return fix
 }
