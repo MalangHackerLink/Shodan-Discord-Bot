@@ -47,8 +47,8 @@ func main() {
 	if err != nil {
 		log.Error(err)
 	}
-	dg.AddHandler(Msg)
-	dg.AddHandler(Map)
+	go dg.AddHandler(Msg)
+	go dg.AddHandler(Map)
 
 	err = dg.Open()
 	if err != nil {

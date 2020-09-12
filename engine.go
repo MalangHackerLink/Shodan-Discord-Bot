@@ -28,9 +28,9 @@ func Msg(s *discordgo.Session, m *discordgo.MessageCreate) {
 				s.ChannelMessageSend(m.ChannelID, err.Error())
 				return
 			}
-			_, err = s.ChannelMessageSend(m.ChannelID, "Subs domain for `"+array[1]+"` : "+strings.Join(info.Subdomains, ","))
+			_, err = s.ChannelMessageSend(m.ChannelID, "<@"+m.Author.ID+">\nSubs domain for `"+array[1]+"` : "+strings.Join(info.Subdomains, ","))
 			if err != nil {
-				s.ChannelMessageSend(m.ChannelID, "Subs domain for `"+array[1]+"` : "+PushPastebin(array[1], []byte(strings.Join(info.Subdomains, ","))))
+				s.ChannelMessageSend(m.ChannelID, "<@"+m.Author.ID+">\nSubs domain for `"+array[1]+"` : "+PushPastebin(array[1], []byte(strings.Join(info.Subdomains, ","))))
 				return
 			}
 		} else if array[0] == prefix+"rev" {
@@ -56,7 +56,7 @@ func Msg(s *discordgo.Session, m *discordgo.MessageCreate) {
 					result = append(result, res)
 
 				}
-				s.ChannelMessageSend(m.ChannelID, "Reverse ip for `"+ips[i].String()+"` : "+strings.Join(result, ","))
+				s.ChannelMessageSend(m.ChannelID, "<@"+m.Author.ID+">\nReverse ip for `"+ips[i].String()+"` : "+strings.Join(result, ","))
 			}
 		} else if array[0] == prefix+"res" {
 			domainlist := strings.Split(array[1], ",")
@@ -67,7 +67,7 @@ func Msg(s *discordgo.Session, m *discordgo.MessageCreate) {
 				return
 			}
 			for i := 0; i < len(domainlist); i++ {
-				s.ChannelMessageSend(m.ChannelID, "Resolve domain for `"+domainlist[i]+"` : "+info[domainlist[i]].String())
+				s.ChannelMessageSend(m.ChannelID, "<@"+m.Author.ID+">\nResolve domain for `"+domainlist[i]+"` : "+info[domainlist[i]].String())
 			}
 		} else if array[0] == prefix+"host" {
 			s.ChannelMessageSend(m.ChannelID, "Wait for 1 minute,if the result still not upper that's mean i fucked")
@@ -76,14 +76,14 @@ func Msg(s *discordgo.Session, m *discordgo.MessageCreate) {
 				info, err := client.GetServicesForHost(ctx, hostlist[i], nil)
 				if err != nil {
 					log.Error(err)
-					s.ChannelMessageSend(m.ChannelID, err.Error())
+					s.ChannelMessageSend(m.ChannelID, "<@"+m.Author.ID+">\n"+err.Error())
 					return
 				}
 				e, err := json.Marshal(info)
 				if err != nil {
 					log.Error(err)
 				}
-				s.ChannelMessageSend(m.ChannelID, PushPastebin(hostlist[i], e))
+				s.ChannelMessageSend(m.ChannelID, "<@"+m.Author.ID+">\n"+PushPastebin(hostlist[i], e))
 				time.Sleep(30 * time.Second)
 			}
 		} else {
@@ -134,14 +134,14 @@ func Map(s *discordgo.Session, m *discordgo.MessageCreate) {
 				dat, warnings, err = Data.ScanGoBrrrr("tcp")
 				if err != nil {
 					log.Error(err)
-					s.ChannelMessageSend(m.ChannelID, err.Error()+"\nWarnings "+strings.Join(warnings, " "))
+					s.ChannelMessageSend(m.ChannelID, "<@"+m.Author.ID+">\n"+err.Error()+"\nWarnings "+strings.Join(warnings, " "))
 					return
 				}
 			} else {
 				dat, warnings, err = Data.ScanGoBrrrr("udp")
 				if err != nil {
 					log.Error(err)
-					s.ChannelMessageSend(m.ChannelID, err.Error()+"\nWarnings "+strings.Join(warnings, " "))
+					s.ChannelMessageSend(m.ChannelID, "<@"+m.Author.ID+">\n"+err.Error()+"\nWarnings "+strings.Join(warnings, " "))
 					return
 				}
 			}
@@ -151,9 +151,9 @@ func Map(s *discordgo.Session, m *discordgo.MessageCreate) {
 			}
 			table.Render()
 			if warnings != nil {
-				s.ChannelMessageSend(m.ChannelID, "WARNINGS `"+strings.Join(warnings, " ")+"`\nPort for `"+host+"`\n```\r"+tableString.String()+"```")
+				s.ChannelMessageSend(m.ChannelID, "<@"+m.Author.ID+">\nWARNINGS `"+strings.Join(warnings, " ")+"`\nPort for `"+host+"`\n```\r"+tableString.String()+"```")
 			} else {
-				s.ChannelMessageSend(m.ChannelID, "Port for `"+host+":`\n```\r"+tableString.String()+"```")
+				s.ChannelMessageSend(m.ChannelID, "<@"+m.Author.ID+">\nPort for `"+host+":`\n```\r"+tableString.String()+"```")
 			}
 		} else if array[0] == prefix2+"script" {
 			if len(array) > 1 {
@@ -165,11 +165,13 @@ func Map(s *discordgo.Session, m *discordgo.MessageCreate) {
 				text := strings.Join(dat, "\n")
 				if warn != nil {
 					log.Warn(warn)
+				} else {
+					warn = append(warn, "null")
 				}
 				if len(text) > 2000 {
-					s.ChannelMessageSend(m.ChannelID, "```"+PushPastebin(Data.IP, []byte(text))+"```")
+					s.ChannelMessageSend(m.ChannelID, "<@"+m.Author.ID+">\n```"+PushPastebin(Data.IP, []byte(text))+"```")
 				} else {
-					s.ChannelMessageSend(m.ChannelID, "Warning\n "+strings.Join(warn, " ")+"```"+text+"```")
+					s.ChannelMessageSend(m.ChannelID, "<@"+m.Author.ID+">\nWarning\n "+strings.Join(warn, " ")+"```"+text+"```")
 				}
 			} else {
 				s.ChannelMessageSend(m.ChannelID, "invalid script args")
