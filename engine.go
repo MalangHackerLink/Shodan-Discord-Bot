@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"net"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -70,7 +71,7 @@ func Msg(s *discordgo.Session, m *discordgo.MessageCreate) {
 				s.ChannelMessageSend(m.ChannelID, "<@"+m.Author.ID+">\nResolve domain for `"+domainlist[i]+"` : "+info[domainlist[i]].String())
 			}
 		} else if array[0] == prefix+"host" {
-			s.ChannelMessageSend(m.ChannelID, "Wait for 1 minute,if the result still not upper that's mean i fucked")
+			s.ChannelMessageSend(m.ChannelID, "Wait for 1 minute,if the result still not upper that's mean i fucked-up")
 			hostlist := strings.Split(array[1], ",")
 			for i := 0; i < len(hostlist); i++ {
 				info, err := client.GetServicesForHost(ctx, hostlist[i], nil)
@@ -118,7 +119,7 @@ func Map(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}).Info(m.Content[len(prefix2):])
 		array := strings.Split(m.Content, " ")
 		if array[0] == prefix2+"scan-tcp" || array[0] == prefix2+"scan-udp" {
-			s.ChannelMessageSend(m.ChannelID, "Wait for 3-5 minute,if the result still not upper that's mean i fucked")
+			s.ChannelMessageSend(m.ChannelID, "Wait for 3-5 minute,if the result still not upper that's mean i fucked-up")
 			var (
 				host     = array[1]
 				dat      [][]string
@@ -155,26 +156,41 @@ func Map(s *discordgo.Session, m *discordgo.MessageCreate) {
 			} else {
 				s.ChannelMessageSend(m.ChannelID, "<@"+m.Author.ID+">\nPort for `"+host+":`\n```\r"+tableString.String()+"```")
 			}
-		} else if array[0] == prefix2+"script" {
-			if len(array) > 1 {
-				s.ChannelMessageSend(m.ChannelID, "Wait for 3-5 minute,if the result still not upper that's mean i fucked")
+		} else if array[0] == prefix2+"http-script" {
+			if len(array) > 1 && strings.HasPrefix(array[1], "http") {
+				s.ChannelMessageSend(m.ChannelID, "Wait for 3-5 minute,if the result still not upper that's mean i fucked-up")
 				Data := IPPORT{
 					IP: array[2],
 				}
-				dat, warn := Data.ScanScriptBrrr(array[1])
+				reg, err := regexp.Compile("[^a-zA-Z0-9\\-]+")
+				if err != nil {
+					log.Error(err)
+				}
+				fixstr := reg.ReplaceAllString(array[1], "")
+
+				dat, warn, err := Data.ScanScriptBrrr(fixstr)
+				if err != nil {
+					log.Error(err)
+					s.ChannelMessageSend(m.ChannelID, "<@"+m.Author.ID+">\n"+err.Error())
+					return
+				}
 				text := strings.Join(dat, "\n")
 				if warn != nil {
 					log.Warn(warn)
 				} else {
 					warn = append(warn, "null")
 				}
-				if len(text) > 2000 {
-					s.ChannelMessageSend(m.ChannelID, "<@"+m.Author.ID+">\n```"+PushPastebin(Data.IP, []byte(text))+"```")
+				if text != "" {
+					if len(text) > 2000 {
+						s.ChannelMessageSend(m.ChannelID, "<@"+m.Author.ID+">\n```"+PushPastebin(Data.IP, []byte(text))+"```")
+					} else {
+						s.ChannelMessageSend(m.ChannelID, "<@"+m.Author.ID+">\nWarning "+strings.Join(warn, " ")+"```"+text+"```")
+					}
 				} else {
-					s.ChannelMessageSend(m.ChannelID, "<@"+m.Author.ID+">\nWarning\n "+strings.Join(warn, " ")+"```"+text+"```")
+					s.ChannelMessageSend(m.ChannelID, "Timeout XD, i fucked-up")
 				}
 			} else {
-				s.ChannelMessageSend(m.ChannelID, "invalid script args")
+				s.ChannelMessageSend(m.ChannelID, "invalid http-script args")
 			}
 		}
 	}
@@ -252,7 +268,7 @@ func (Data IPPORT) ScanGoBrrrr(pkttype string) ([][]string, []string, error) {
 	return nil, nil, nil
 }
 
-func (Data IPPORT) ScanScriptBrrr(script string) ([]string, []string) {
+func (Data IPPORT) ScanScriptBrrr(script string) ([]string, []string, error) {
 	var fix []string
 	scanner, err := nmap.NewScanner(
 		nmap.WithScripts(script),
@@ -265,6 +281,10 @@ func (Data IPPORT) ScanScriptBrrr(script string) ([]string, []string) {
 	}
 
 	result, warnings, err := scanner.Run()
+	if err != nil {
+		log.Error(err)
+		return nil, nil, err
+	}
 	for _, res := range result.Hosts {
 		for _, pors := range res.Ports {
 			for _, scr := range pors.Scripts {
@@ -272,5 +292,5 @@ func (Data IPPORT) ScanScriptBrrr(script string) ([]string, []string) {
 			}
 		}
 	}
-	return fix, warnings
+	return fix, warnings, nil
 }
