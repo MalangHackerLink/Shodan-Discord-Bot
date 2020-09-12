@@ -163,10 +163,13 @@ func Map(s *discordgo.Session, m *discordgo.MessageCreate) {
 				}
 				dat, warn := Data.ScanScriptBrrr(array[1])
 				text := strings.Join(dat, "\n")
-				if len(text) > 2048 {
-					s.ChannelMessageSend(m.ChannelID, "Warning\n "+strings.Join(warn, " ")+"```"+PushPastebin(Data.IP, []byte(text))+"```")
+				if warn != nil {
+					log.Warn(warn)
+				}
+				if len(text) > 2000 {
+					s.ChannelMessageSend(m.ChannelID, "```"+PushPastebin(Data.IP, []byte(text))+"```")
 				} else {
-					s.ChannelMessageSend(m.ChannelID, "```"+text+"```")
+					s.ChannelMessageSend(m.ChannelID, "Warning\n "+strings.Join(warn, " ")+"```"+text+"```")
 				}
 			} else {
 				s.ChannelMessageSend(m.ChannelID, "invalid script args")
